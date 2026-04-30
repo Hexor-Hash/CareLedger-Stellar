@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Provider {
+  id          Int      @id @default(autoincrement())
+  contractId  BigInt   @unique
+  name        String
+  wallet      String
+  specialty   String
+  createdAt   DateTime @default(now())
+  payments    Payment[]
+  records     MedicalRecord[]
+}
+
+model Payment {
+  id           Int      @id @default(autoincrement())
+  contractId   BigInt   @unique
+  patientAddr  String
+  providerId   Int
+  amount       BigInt
+  tokenAddr    String
+  serviceHash  String
+  txHash       String?
+  createdAt    DateTime @default(now())
+  provider     Provider @relation(fields: [providerId], references: [id])
+  claims       InsuranceClaim[]
+}
+
+model MedicalRecord {
+  id          Int      @id @default(autoincrement())
+  contractId  BigInt   @unique
+  patientAddr String
+  recordHash  String
+  ipfsCid     String
+  providerId  Int
+  createdAt   DateTime @default(now())
+  provider    Provider @relation(fields: [providerId], references: [id])
+}
+
+model InsuranceClaim {
+  id          Int      @id @default(autoincrement())
+  contractId  BigInt   @unique
+  paymentId   Int
+  insurerAddr String
+  amount      BigInt
+  createdAt   DateTime @default(now())
+  payment     Payment  @relation(fields: [paymentId], references: [id])
+}

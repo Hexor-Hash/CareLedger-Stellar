@@ -1,0 +1,13 @@
+# Rust
+target/
+*.wasm
+
+# Node
+node_modules/
+dist/
+.next/
+*.env
+!*.env.example
+
+# Misc
+.DS_Store

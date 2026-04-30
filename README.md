@@ -1,179 +1,182 @@
 # CareLedger-Stellar
-  
-Decentralized healthcare payment and medical records platform built on Stellar and Soroban.
 
-StellarMed enables patients to pay for healthcare services using XLM and USDC while maintaining full ownership and control of their encrypted medical records stored on-chain via cryptographic hashes and decentralized storage systems.
+Decentralized healthcare payments and medical records protocol built on Stellar/Soroban.
 
-The platform improves healthcare transparency, interoperability, and patient data sovereignty by removing centralized control over medical records and payment systems.
-
----
-
-## Features
-
-### Healthcare Payments
-- Pay for medical services using XLM and USDC
-- Instant on-chain payment settlement
-- Transparent transaction history
-- Support for multiple healthcare providers
-
-### Provider Network
-- Healthcare provider registration system
-- Verified provider profiles
-- Service listing and management
-- Revenue tracking dashboard
-
-### Medical Records System
-- Encrypted medical record storage
-- On-chain hash verification
-- Decentralized storage via IPFS
-- Patient-controlled access permissions
-- Secure record sharing with providers
-
-### Insurance Integration
-- Insurance claim processing support
-- Claim verification workflows
-- Automated reimbursement tracking
-- Provider-insurer interaction layer
-
-### Dashboards
-- Patient dashboard for records and payments
-- Provider dashboard for services and earnings
-- Analytics and history tracking
-
----
-
-## Stack
-
-- Smart Contracts: Soroban (Rust)
-- Blockchain: Stellar Network
-- Frontend: Next.js 14
-- Backend: NestJS
-- Database: PostgreSQL
-- Storage: IPFS
-- Wallet Integration: Freighter SDK
+Patients pay for services with XLM/USDC, store encrypted medical records on IPFS with on-chain hash verification, and control who can access their data — all without a central authority.
 
 ---
 
 ## Architecture
 
-```text
-Frontend (Next.js)
-        |
-        v
-Backend API (NestJS)
-        |
-        v
-PostgreSQL Database
-        |
-        v
-IPFS (Medical Records Storage)
-        |
-        v
-Soroban Smart Contracts
-        |
-        v
-Stellar Blockchain
+```
+Next.js 14 Frontend
+      │
+      ▼
+NestJS Backend API  ──►  IPFS (Helia)
+      │
+      ▼
+PostgreSQL (Prisma)
+      │
+      ▼
+Soroban Smart Contract
+      │
+      ▼
+Stellar Testnet / Mainnet
 ```
 
 ---
 
-## Getting Started
+## Smart Contract Functions
 
-### Clone Repository
-
-```bash id="k4x9pm"
-git clone https://github.com/dev-fatima-24/StellarMed.git
-cd StellarMed
-```
-
-### Install Dependencies
-
-```bash id="w2l9de"
-npm install
-```
-
-### Run Development Server
-
-```bash id="p9c3xr"
-npm run dev
-```
-
----
-
-## Smart Contract Modules
-
-### Payment Contract
-- Healthcare payment processing
-- USDC/XLM settlement logic
-- Provider payout distribution
-
-### Records Contract
-- Medical record hash storage
-- Access control logic
-- Ownership verification
-
-### Insurance Contract
-- Claim validation logic
-- Reimbursement tracking
-- Provider-insurer settlement flow
+| Function | Description |
+|---|---|
+| `register_provider(name, wallet, specialty)` | Register a healthcare provider, returns `ProviderId` |
+| `pay_for_service(patient, provider_id, amount, token, service_hash)` | Transfer token from patient to provider, returns `PaymentId` |
+| `store_record(patient, record_hash, ipfs_cid, provider_id)` | Store encrypted record hash + IPFS CID, returns `RecordId` |
+| `grant_access(record_id, patient, accessor, expiry)` | Grant time-limited read access to a record |
+| `revoke_access(record_id, patient, accessor)` | Revoke access immediately |
+| `submit_insurance_claim(payment_id, insurer, amount)` | Submit a claim against a payment, returns `ClaimId` |
 
 ---
 
 ## Project Structure
 
-```text id="z8m1qa"
-StellarMed/
-├── contracts/
-│   ├── payments/
-│   ├── records/
-│   └── insurance/
-│
-├── frontend/
-│   ├── app/
-│   ├── components/
-│   ├── hooks/
-│   └── lib/
-│
+```
+CareLedger-Stellar/
+├── contracts/careledger/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs          # Soroban contract
+│       └── test.rs         # Contract tests
 ├── backend/
 │   ├── src/
-│   ├── modules/
-│   ├── prisma/
-│   └── queues/
-│
-├── storage/
-│   └── ipfs/
-│
-└── README.md
+│   │   ├── app.module.ts
+│   │   ├── main.ts
+│   │   ├── prisma/         # DB service
+│   │   ├── stellar/        # Contract invocation
+│   │   ├── ipfs/           # Helia IPFS service
+│   │   ├── providers/      # Provider CRUD
+│   │   ├── payments/       # Payment processing
+│   │   ├── records/        # Record upload + access
+│   │   └── claims/         # Insurance claims
+│   └── prisma/schema.prisma
+├── frontend/
+│   ├── app/
+│   │   ├── page.tsx        # Home / navigation
+│   │   ├── patient/        # Patient portal
+│   │   └── provider/       # Provider portal
+│   ├── components/
+│   │   └── WalletButton.tsx
+│   ├── hooks/useWallet.ts
+│   └── lib/api.ts
+├── scripts/deploy.sh
+├── docker-compose.yml
+└── Cargo.toml              # Workspace
 ```
 
 ---
 
-## Future Improvements
+## Prerequisites
 
-- AI-assisted medical diagnostics integration
-- Telemedicine video consultation module
-- Decentralized identity (DID) for patients
-- Cross-border healthcare payments
-- Automated insurance underwriting
-- Emergency access recovery system
+- [Rust + wasm32 target](https://www.rust-lang.org/tools/install): `rustup target add wasm32-unknown-unknown`
+- [Stellar CLI](https://developers.stellar.org/docs/tools/developer-tools/cli/install-stellar-cli): `cargo install stellar-cli --features opt`
+- Node.js 20+
+- Docker (for PostgreSQL)
+- [Freighter wallet](https://www.freighter.app/) browser extension
 
 ---
 
-## Contributing
+## Setup
 
-1. Fork the repository  
-2. Create a feature branch  
-3. Commit changes  
-4. Push and open a pull request  
+### 1. Start PostgreSQL
+
+```bash
+docker-compose up -d
+```
+
+### 2. Build & Deploy Contract
+
+```bash
+chmod +x scripts/deploy.sh
+./scripts/deploy.sh
+# Copy the CONTRACT_ID from output
+```
+
+### 3. Backend
+
+```bash
+cd backend
+cp .env.example .env
+# Fill in CONTRACT_ID and DEPLOYER_SECRET in .env
+npm install
+npm run prisma:generate
+npm run prisma:migrate
+npm run start:dev
+```
+
+### 4. Frontend
+
+```bash
+cd frontend
+cp .env.example .env
+# Fill in NEXT_PUBLIC_CONTRACT_ID
+npm install
+npm run dev
+```
+
+Open http://localhost:3000
+
+---
+
+## Running Contract Tests
+
+```bash
+cargo test --manifest-path contracts/careledger/Cargo.toml
+```
+
+---
+
+## API Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| POST | `/providers` | Register provider |
+| GET | `/providers` | List all providers |
+| POST | `/payments` | Pay for service |
+| GET | `/payments?patient=` | Patient payment history |
+| GET | `/payments?providerId=` | Provider earnings |
+| POST | `/records/upload` | Upload record to IPFS + chain |
+| GET | `/records?patient=` | Patient records |
+| POST | `/records/:id/grant` | Grant record access |
+| POST | `/records/:id/revoke` | Revoke record access |
+| POST | `/claims` | Submit insurance claim |
+| GET | `/claims` | List all claims |
+
+---
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/careledger
+CONTRACT_ID=<deployed contract ID>
+DEPLOYER_SECRET=<Stellar secret key>
+STELLAR_RPC_URL=https://soroban-testnet.stellar.org
+NETWORK_PASSPHRASE=Test SDF Network ; September 2015
+PORT=3001
+```
+
+### Frontend (`frontend/.env`)
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_CONTRACT_ID=<deployed contract ID>
+NEXT_PUBLIC_NETWORK=TESTNET
+```
 
 ---
 
 ## License
 
-MIT License
-
----
-
-## Vision
-
-StellarMed aims to build a decentralized healthcare infrastructure where patients own their medical data, providers receive instant payments, and healthcare systems become interoperable, transparent, and globally accessible.
+MIT
